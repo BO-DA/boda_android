@@ -30,13 +30,13 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /* 키 해시 얻기*/
+        // 키 해시 얻기
         try {
             PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
             for (Signature signature : info.signatures) {
                 MessageDigest md = MessageDigest.getInstance("SHA");
                 md.update(signature.toByteArray());
-                Log.d("키해시는 :", Base64.encodeToString(md.digest(), Base64.DEFAULT));
+                Log.d("키 해시 :", Base64.encodeToString(md.digest(), Base64.DEFAULT));
             }
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
             e.printStackTrace();
         }
 
-        // 권한ID를 가져옵니다
+        // 권한ID를 가져오기
         int permission = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.INTERNET);
 
@@ -66,8 +66,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
             return;
         }
 
-        //지도를 띄우자
-        // java code
+        //지도 띄우기
         mapView = new MapView(this);
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
@@ -141,7 +140,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
     }
 
-    // 권한 체크 이후로직
+    // 권한 체크 이후 로직
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults) {
         // READ_PHONE_STATE의 권한 체크 결과를 불러온다

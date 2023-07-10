@@ -14,11 +14,21 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.ViewGroup;
 
+import com.example.boda.route.RequestInfo;
+import com.example.boda.route.ResponseInfo;
+import com.example.boda.route.RetrofitAPI;
+
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
 
@@ -29,6 +39,10 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        final Retrofit.Builder retrofitBuilder = new Retrofit.Builder()
+                .baseUrl("https://apis.openapi.sk.com/")
+                .addConverterFactory(GsonConverterFactory.create());
 
         /* 키 해시 얻기*/
         try {
@@ -74,6 +88,31 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setMapViewEventListener(this);
         mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
 
+        // API 통신
+        Retrofit retrofit = retrofitBuilder.build();
+        RetrofitAPI retrofitAPI = retrofit.create(RetrofitAPI.class);
+
+        RequestInfo requestInfo = new RequestInfo(126.983937, 37.564991, 126.988940, 37.566158, "WGS84GEO", "WGS84GEO", "출발지", "도착지");
+        Call<ResponseInfo> requestCall = retrofitAPI.walkingDirection(requestInfo);
+//        Response<ResponseInfo> response = requestCall.execute();
+
+        retrofitAPI.walkingDirection(requestInfo).enqueue(new Callback<ResponseInfo>() {
+
+            @Override
+            public void onResponse(@NonNull Call<ResponseInfo> call, @NonNull Response<ResponseInfo> response) {
+                if (response.isSuccessful()) {
+                    ResponseInfo data = response.body();
+                    Log.d("API", data.toString());
+                }
+                else {
+                    Log.d("API", "here");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseInfo> call, Throwable t) {
+            }
+        });
     }
 
     @Override
@@ -141,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
     }
 
-    // 권한 체크 이후로직
+    // 권한 체크 이후 로직
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults) {
         // READ_PHONE_STATE의 권한 체크 결과를 불러온다

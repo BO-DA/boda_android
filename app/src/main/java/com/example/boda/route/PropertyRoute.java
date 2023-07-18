@@ -1,7 +1,5 @@
 package com.example.boda.route;
 
-import androidx.annotation.Nullable;
-
 import com.google.gson.annotations.SerializedName;
 
 import lombok.Getter;
@@ -24,7 +22,7 @@ public class PropertyRoute {
 
     // 길 안내, 도로 및 시설물 정보
     @SerializedName("facilityType")
-    private int  facilityType;
+    private String  facilityType;
 
     // 길 안내, 도로 및 시설물 정보
     @SerializedName("facilityName")

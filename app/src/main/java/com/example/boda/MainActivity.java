@@ -2,6 +2,7 @@ package com.example.boda;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
@@ -10,9 +11,11 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.util.Base64;
 import android.util.Log;
 import android.view.ViewGroup;
@@ -88,16 +91,17 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setMapViewEventListener(this);
         mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
         mapView.setShowCurrentLocationMarker(true);
-        mapView.setCurrentLocationRadius(10);
+        mapView.setCurrentLocationRadius(20);
 
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Location nowLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Location nowLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
         Double nowLatitude = nowLocation.getLatitude();
         Double nowLongitude = nowLocation.getLongitude();
 
         Log.d("Position", String.valueOf(nowLatitude));
         Log.d("Position", String.valueOf(nowLongitude));
+
         // API 통신
         final ResponseInfo[] data = {null};
 
@@ -109,8 +113,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         RetrofitAPI retrofitAPI = retrofit.create(RetrofitAPI.class);
 
         RequestInfo requestInfo = new RequestInfo(
-                126.983937,
-                37.564991,
+                nowLongitude,
+                nowLatitude,
                 126.988940,
                 37.566158,
                 "WGS84GEO",
@@ -134,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
     @Override
     public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
-        Log.d("Location", "위치 업데이트 성공");
+        
     }
 
     @Override

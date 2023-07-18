@@ -1,5 +1,7 @@
 package com.example.boda.route;
 
+import static com.example.boda.route.Config.APP_KEY_TOKEN;
+
 import java.util.List;
 
 import retrofit2.Call;
@@ -10,7 +12,7 @@ import retrofit2.http.POST;
 public interface RetrofitAPI {
     @Headers(
             {
-                    "appKey: {HIDDEN}",
+                    "appKey: " + APP_KEY_TOKEN,
                     "Content-Type: application/json"
             }
     )

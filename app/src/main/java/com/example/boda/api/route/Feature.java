@@ -1,4 +1,4 @@
-package com.example.boda.route;
+package com.example.boda.api.route;
 
 import com.google.gson.annotations.SerializedName;
 

@@ -16,10 +16,12 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.example.boda.api.route.RequestInfo;
 import com.example.boda.api.route.ResponseInfo;
 import com.example.boda.api.RetrofitAPI;
+import com.example.boda.api.search.Document;
 import com.example.boda.api.search.SearchResponseInfo;
 
 import net.daum.mf.map.api.MapPoint;
@@ -90,19 +92,63 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setShowCurrentLocationMarker(true);
         mapView.setCurrentLocationRadius(20);
 
+        // 현재 위치 시스템으로부터 가져오기
         final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Location nowLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
-        Double nowLatitude = nowLocation.getLatitude();
-        Double nowLongitude = nowLocation.getLongitude();
-
-        Log.d("Position", String.valueOf(nowLatitude));
-        Log.d("Position", String.valueOf(nowLongitude));
+        Double nowLatitude = nowLocation.getLatitude(); Log.d("Position.Latitude", String.valueOf(nowLatitude));
+        Double nowLongitude = nowLocation.getLongitude();   Log.d("Position.Longitude", String.valueOf(nowLongitude));
 
         // API 통신
-        final ResponseInfo[] data = {null};
         final SearchResponseInfo[] searchData = {null};
+        final ResponseInfo[] data = {null};
 
+        // todo: TTS 구현
+        // todo: TTS 말하기 ("원하시는 목적지를 말씀해주세요.")
+        // todo: STT 수행
+        String placeName = "던킨도너츠"; // todo: 장소 STT 받아서 전달하기
+        searchPlace(searchData, data, nowLongitude, nowLatitude, placeName);
+
+        Toast toast = Toast.makeText(this.getApplicationContext(), "현 위치에서 " + placeName + "까지의 경로를 안내합니다.", Toast.LENGTH_SHORT);
+        toast.show();
+
+
+    }
+
+    // Kakao map API로 장소 이름을 통해 검색하여, 최상단 장소의 위도, 경도를 가지고 옴
+    private void searchPlace(SearchResponseInfo[] searchData, ResponseInfo[] data, Double nowLongitude, Double nowLatitude, String placeName) {
+        Retrofit searchRetrofit = new Retrofit.Builder()
+                .baseUrl("https://dapi.kakao.com/v2/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        RetrofitAPI searchRetrofitAPI = searchRetrofit.create(RetrofitAPI.class);
+
+        Map<String, String> queries = new HashMap<>();
+        queries.put("query", placeName);
+        queries.put("x", nowLongitude.toString());
+        queries.put("y", nowLatitude.toString());
+        queries.put("radius", "5000");
+        searchRetrofitAPI.findPlace(queries).enqueue(new Callback<SearchResponseInfo>() {
+            @Override
+            public void onResponse(@NonNull Call<SearchResponseInfo> call, @NonNull Response<SearchResponseInfo> response) {
+                searchData[0] = response.body();
+                assert searchData[0] != null;
+                Log.d("SearchResponse", searchData[0].toString());
+                Document resBody = searchData[0].getDocuments()[0];
+                // 장소 검색이 성공한 경우에만 directionSearch를 통해 경로를 검색함
+                directionSearch(data, nowLongitude, nowLatitude, Double.parseDouble(resBody.getX()), Double.parseDouble(resBody.getY()));
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SearchResponseInfo> call, @NonNull Throwable t) {
+                t.printStackTrace();
+            }
+        });
+    }
+
+    // 출발지 (현위치)로부터 도착지 (현위치 반경 가장 가까운 장소 검색) 하여 도보 경로 반환
+    private void directionSearch(ResponseInfo[] data, Double nowLongitude, Double nowLatitude, Double searchLongitude, Double searchLatitude) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://apis.openapi.sk.com/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -113,11 +159,11 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         RequestInfo requestInfo = new RequestInfo(
                 nowLongitude,
                 nowLatitude,
-                126.988940,
-                37.566158,
+                searchLongitude,
+                searchLatitude,
                 "WGS84GEO",
                 "WGS84GEO",
-                "출발지",
+                "현재 위치",
                 "도착지");
         retrofitAPI.walkingDirection(requestInfo).enqueue(new Callback<ResponseInfo>() {
             @Override
@@ -132,40 +178,11 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 t.printStackTrace();
             }
         });
-
-        Retrofit searchRetrofit = new Retrofit.Builder()
-                .baseUrl("https://dapi.kakao.com/v2/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        RetrofitAPI searchRetrofitAPI = searchRetrofit.create(RetrofitAPI.class);
-
-        Map<String, String> querys = new HashMap<>();
-        querys.put("query", "던킨도너츠");
-        querys.put("x", nowLongitude.toString());
-        querys.put("y", nowLatitude.toString());
-        querys.put("radius", "5000");
-        searchRetrofitAPI.findPlace(querys).enqueue(new Callback<SearchResponseInfo>() {
-            @Override
-            public void onResponse(@NonNull Call<SearchResponseInfo> call, @NonNull Response<SearchResponseInfo> response) {
-                searchData[0] = response.body();
-                assert searchData[0] != null;
-                Log.d("SearchResponse", searchData[0].toString());
-                Log.d("answer", searchData[0].getDocuments()[0].getPlace_name());
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<SearchResponseInfo> call, @NonNull Throwable t) {
-                t.printStackTrace();
-            }
-        });
-
-
     }
 
     @Override
     public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
-        
+
     }
 
     @Override

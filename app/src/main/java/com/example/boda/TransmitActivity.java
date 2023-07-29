@@ -1,5 +1,8 @@
 package com.example.boda;
 
+import static android.Manifest.permission.CAMERA;
+import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.DialogInterface;
@@ -12,6 +15,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageView;
 
@@ -21,20 +26,27 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.List;
+import java.util.Collections;
 
-public class TransmitActivity extends AppCompatActivity {
+
+public class TransmitActivity extends AppCompatActivity
+        implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private static final String TAG = "AndroidOpenCv";
     private static final int REQ_CODE_SELECT_IMAGE = 100;
-    private Bitmap mInputImage;
-    private Bitmap mOriginalImage;
-    private ImageView mImageView;
-    private ImageView mEdgeImageView;
+    private static final int CAMERA_PERMISSION_CODE = 200;
+    private Mat matInput;
+
+    private CameraBridgeViewBase m_CameraView;
     private boolean mIsOpenCVReady = false;
 
 
@@ -42,35 +54,38 @@ public class TransmitActivity extends AppCompatActivity {
         System.loadLibrary("opencv_java4");
     }
 
-    public void detectEdge() {
-        Mat src = new Mat();
-        Utils.bitmapToMat(mInputImage, src);
-        Mat edge = new Mat();
-        Imgproc.Canny(src, edge, 50, 150);
-        Utils.matToBitmap(edge, mInputImage);
-        src.release();
-        edge.release();
-        mEdgeImageView.setImageBitmap(mInputImage);
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        showDialogForPermission("test");
+
+        boolean _Permission = true; // 변수 추가
+
         setContentView(R.layout.activity_transmit);
-        mImageView = findViewById(R.id.origin_iv);
-        mEdgeImageView = findViewById(R.id.edge_iv);
+
+        m_CameraView = (CameraBridgeViewBase) findViewById(R.id.origin_iv);
+        m_CameraView.setVisibility(SurfaceView.VISIBLE);
+        m_CameraView.setCvCameraViewListener(this);
+        m_CameraView.setCameraIndex(0); // front : 1, back : 0
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!hasPermissions(PERMISSIONS)) {
                 requestPermissions(PERMISSIONS, PERMISSIONS_REQUEST_CODE);
             }
         }
+        if (_Permission)
+        {
+            //여기서 카메라 뷰 받아옴
+            onCameraPermissionGranted();
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        if (m_CameraView != null)
+            m_CameraView.disableView();
     }
 
     @Override
@@ -78,49 +93,37 @@ public class TransmitActivity extends AppCompatActivity {
         super.onResume();
         if (OpenCVLoader.initDebug()) {
             mIsOpenCVReady = true;
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_CODE_SELECT_IMAGE) {
-            if (resultCode == Activity.RESULT_OK) {
-                try {
-                    String path = getImagePathFromURI(data.getData());
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inSampleSize = 4;
-                    mOriginalImage = BitmapFactory.decodeFile(path, options);
-                    mInputImage = BitmapFactory.decodeFile(path, options);
-                    if (mInputImage != null) {
-                        detectEdge();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+            Log.d(TAG, "onResume :: OpenCV library found inside package. Using it!");
+            m_LoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
 
     public void onDestroy() {
         super.onDestroy();
 
-        mInputImage.recycle();
-        if (mInputImage != null) {
-            mInputImage = null;
-        }
+        if (m_CameraView != null)
+            m_CameraView.disableView();
     }
 
-    public void onButtonClicked(View view) {
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType(android.provider.MediaStore.Images.Media.CONTENT_TYPE);
-        intent.setData(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(intent, REQ_CODE_SELECT_IMAGE);
-    }
+    private BaseLoaderCallback m_LoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    m_CameraView.enableView();
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
 
     // permission
     static final int PERMISSIONS_REQUEST_CODE = 1000;
-    String[] PERMISSIONS = {"android.permission.READ_EXTERNAL_STORAGE"};
+    String[] PERMISSIONS = {CAMERA, READ_EXTERNAL_STORAGE};
 
 
     private boolean hasPermissions(String[] permissions) {
@@ -134,40 +137,19 @@ public class TransmitActivity extends AppCompatActivity {
         return true;
     }
 
-    public String getImagePathFromURI(Uri contentUri) {
-        String[] proj = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
-        if (cursor == null) {
-            return contentUri.getPath();
-        } else {
-            int idx = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String imgPath = cursor.getString(idx);
-            cursor.close();
-            return imgPath;
-        }
+    protected List<? extends CameraBridgeViewBase> getCameraViewList() {
+        return Collections.singletonList(m_CameraView);
     }
 
-    // permission
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        switch (requestCode) {
-
-            case PERMISSIONS_REQUEST_CODE:
-                if (grantResults.length > 0) {
-                    boolean cameraPermissionAccepted = grantResults[0]
-                            == PackageManager.PERMISSION_GRANTED;
-
-                    if (!cameraPermissionAccepted)
-                        showDialogForPermission("실행을 위해 권한 허가가 필요합니다.");
-                }
-                break;
+    protected void onCameraPermissionGranted() {
+        List<? extends CameraBridgeViewBase> cameraViews = getCameraViewList();
+        Log.d(TAG + "AA", cameraViews.toString());
+        for (CameraBridgeViewBase cameraBridgeViewBase: cameraViews) {
+            if (cameraBridgeViewBase != null) {
+                cameraBridgeViewBase.setCameraPermissionGranted();
+            }
         }
     }
-
 
     @TargetApi(Build.VERSION_CODES.M)
     private void showDialogForPermission(String msg) {
@@ -187,5 +169,21 @@ public class TransmitActivity extends AppCompatActivity {
             }
         });
         builder.create().show();
+    }
+
+    @Override
+    public void onCameraViewStarted(int width, int height) {
+        Log.d(TAG, "test started!!");
+    }
+
+    @Override
+    public void onCameraViewStopped() {
+
+    }
+
+    @Override
+    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        matInput = inputFrame.rgba();
+        return matInput;
     }
 }

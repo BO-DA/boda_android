@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /* 키 해시 얻기 */
+        // 키 해시 얻기
         try {
             PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
             for (Signature signature : info.signatures) {
@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
             e.printStackTrace();
         }
 
-        // 권한ID를 가져옵니다
+        // 권한ID를 가져오기
         int permission = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.INTERNET);
 

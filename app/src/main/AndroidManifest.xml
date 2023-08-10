@@ -22,7 +22,7 @@
         <meta-data android:name="com.kakao.sdk.AppKey" android:value="SECRET_APP_KEY"/>
         <activity
             android:name=".MainActivity"
-            android:exported="true" >
+            android:exported="false" >
         </activity>
         <activity
             android:name=".SttActivity"

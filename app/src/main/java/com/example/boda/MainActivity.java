@@ -5,6 +5,7 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -47,6 +48,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
     private MapView mapView;
     private ViewGroup mapViewContainer;
+    String sttResult;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +100,17 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setCurrentLocationRadius(20);
     }
 
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//
+//        if (resultCode == RESULT_OK) {
+//            sttResult = data.getStringExtra("sttResult");
+////            Log.d("여기여기", sttResult);
+//            Toast.makeText(this, sttResult, Toast.LENGTH_SHORT).show();
+//        }
+//    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -126,21 +139,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         // todo: TTS 구현
         // todo: TTS 말하기 ("원하시는 목적지를 말씀해주세요.")
 
-//        ActivityResultLauncher<Intent>  startActivityResult =
-//                registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-//                        new ActivityResultCallback<ActivityResult>() {
-//                            @Override
-//                            public void onActivityResult(ActivityResult result) {
-//                                if (result.getResultCode() == 0) {
-//                                    String sttResult = result.getData().getStringExtra("sttResult");
-//                                    Log.d("sttResult", sttResult);
-//                                }
-//                            }
-//                        });
-
-        Intent intent = new Intent();
-        String placeName = intent.getStringExtra("sttResult");
-        Log.d("던킨", placeName);
+        String placeName = getIntent().getStringExtra("sttResult");
         searchPlace(searchData, data, nowLongitude, nowLatitude, placeName);
 
         Toast toast = Toast.makeText(this.getApplicationContext(), "현 위치에서 " + placeName + "까지의 경로를 안내합니다.", Toast.LENGTH_SHORT);

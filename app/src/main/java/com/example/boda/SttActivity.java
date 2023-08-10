@@ -130,7 +130,8 @@ public class SttActivity extends AppCompatActivity {
 
             String sttResult = "";
             for (int i = 0; i < matches.size(); i++) {
-                sttResult.concat(matches.get(i));
+                sttResult += matches.get(i);
+                textView.setText(matches.get(i));
             }
             Log.d("여기", sttResult);
 
@@ -138,7 +139,7 @@ public class SttActivity extends AppCompatActivity {
             mainIntent.putExtra("sttResult", sttResult);
             setResult(RESULT_OK, mainIntent);
 
-            finish();
+//            finish();
             startActivity(mainIntent);
         }
 

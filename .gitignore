@@ -1,3 +1,6 @@
+# Secret Keys
+app/src/main/java/com/example/boda/api/Config.java
+
 *.iml
 .gradle
 /local.properties

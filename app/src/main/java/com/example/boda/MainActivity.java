@@ -1,11 +1,17 @@
 package com.example.boda;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -39,7 +45,6 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
-
     private MapView mapView;
     private ViewGroup mapViewContainer;
 
@@ -91,10 +96,25 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
         mapView.setShowCurrentLocationMarker(true);
         mapView.setCurrentLocationRadius(20);
+    }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
         // 현재 위치 시스템으로부터 가져오기
         final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Location nowLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        String locationProvider = LocationManager.GPS_PROVIDER;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Location nowLocation = locationManager.getLastKnownLocation(locationProvider);
 
         Double nowLatitude = nowLocation.getLatitude(); Log.d("Position.Latitude", String.valueOf(nowLatitude));
         Double nowLongitude = nowLocation.getLongitude();   Log.d("Position.Longitude", String.valueOf(nowLongitude));
@@ -105,14 +125,26 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
         // todo: TTS 구현
         // todo: TTS 말하기 ("원하시는 목적지를 말씀해주세요.")
-        // todo: STT 수행
-        String placeName = "던킨도너츠"; // todo: 장소 STT 받아서 전달하기
+
+//        ActivityResultLauncher<Intent>  startActivityResult =
+//                registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+//                        new ActivityResultCallback<ActivityResult>() {
+//                            @Override
+//                            public void onActivityResult(ActivityResult result) {
+//                                if (result.getResultCode() == 0) {
+//                                    String sttResult = result.getData().getStringExtra("sttResult");
+//                                    Log.d("sttResult", sttResult);
+//                                }
+//                            }
+//                        });
+
+        Intent intent = new Intent();
+        String placeName = intent.getStringExtra("sttResult");
+        Log.d("던킨", placeName);
         searchPlace(searchData, data, nowLongitude, nowLatitude, placeName);
 
         Toast toast = Toast.makeText(this.getApplicationContext(), "현 위치에서 " + placeName + "까지의 경로를 안내합니다.", Toast.LENGTH_SHORT);
         toast.show();
-
-
     }
 
     // Kakao map API로 장소 이름을 통해 검색하여, 최상단 장소의 위도, 경도를 가지고 옴

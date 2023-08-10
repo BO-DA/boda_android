@@ -2,15 +2,19 @@ package com.example.boda;
 
 import android.Manifest;
 import android.content.Intent;
+import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -20,7 +24,7 @@ public class SttActivity extends AppCompatActivity {
 
     Intent intent;
     SpeechRecognizer mRecognizer;
-    Button sttBtn;
+    ImageButton sttBtn;
     TextView textView;
     final int PERMISSION = 1;
 
@@ -37,10 +41,10 @@ public class SttActivity extends AppCompatActivity {
 
         // xml의 버튼과 텍스트 뷰 연결
         textView = (TextView)findViewById(R.id.stt_text);
-        sttBtn = (Button)findViewById(R.id.stt_button);
+        sttBtn = (ImageButton)findViewById(R.id.stt_button);
 
         // RecognizerIntent 객체 생성
-        intent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,getPackageName());
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ko-KR");
 
@@ -124,9 +128,18 @@ public class SttActivity extends AppCompatActivity {
             ArrayList<String> matches =
                     results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
 
-            for(int i = 0; i < matches.size() ; i++){
-                textView.setText(matches.get(i));
+            String sttResult = "";
+            for (int i = 0; i < matches.size(); i++) {
+                sttResult.concat(matches.get(i));
             }
+            Log.d("여기", sttResult);
+
+            Intent mainIntent = new Intent(getApplicationContext(), MainActivity.class);
+            mainIntent.putExtra("sttResult", sttResult);
+            setResult(RESULT_OK, mainIntent);
+
+            finish();
+            startActivity(mainIntent);
         }
 
         @Override

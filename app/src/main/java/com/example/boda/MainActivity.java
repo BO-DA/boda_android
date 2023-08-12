@@ -36,6 +36,7 @@ import net.daum.mf.map.api.MapView;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,7 +49,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
     private MapView mapView;
     private ViewGroup mapViewContainer;
-    String sttResult;
+    final private String    GEOMETRY_TYPE = "WGS84GEO";
+    ArrayList<ArrayList<ArrayList<Double>>> routes = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,21 +97,11 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
         mapView.setMapViewEventListener(this);
+        mapView.setCurrentLocationEventListener(this);
         mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
         mapView.setShowCurrentLocationMarker(true);
         mapView.setCurrentLocationRadius(20);
     }
-
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//
-//        if (resultCode == RESULT_OK) {
-//            sttResult = data.getStringExtra("sttResult");
-////            Log.d("여기여기", sttResult);
-//            Toast.makeText(this, sttResult, Toast.LENGTH_SHORT).show();
-//        }
-//    }
 
     @Override
     protected void onStart() {
@@ -129,21 +121,19 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         }
         Location nowLocation = locationManager.getLastKnownLocation(locationProvider);
 
+        assert nowLocation != null;
         Double nowLatitude = nowLocation.getLatitude(); Log.d("Position.Latitude", String.valueOf(nowLatitude));
         Double nowLongitude = nowLocation.getLongitude();   Log.d("Position.Longitude", String.valueOf(nowLongitude));
-
-        // API 통신
-        final SearchResponseInfo[] searchData = {null};
-        final ResponseInfo[] data = {null};
 
         // todo: TTS 구현
         // todo: TTS 말하기 ("원하시는 목적지를 말씀해주세요.")
 
+        // API 통신
+        SearchResponseInfo[] searchData = {null};
+        ResponseInfo[] data = {null};
+
         String placeName = getIntent().getStringExtra("sttResult");
         searchPlace(searchData, data, nowLongitude, nowLatitude, placeName);
-
-        Toast toast = Toast.makeText(this.getApplicationContext(), "현 위치에서 " + placeName + "까지의 경로를 안내합니다.", Toast.LENGTH_SHORT);
-        toast.show();
     }
 
     // Kakao map API로 장소 이름을 통해 검색하여, 최상단 장소의 위도, 경도를 가지고 옴
@@ -168,6 +158,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 Log.d("SearchResponse", searchData[0].toString());
                 Document resBody = searchData[0].getDocuments()[0];
                 // 장소 검색이 성공한 경우에만 directionSearch를 통해 경로를 검색함
+                Toast.makeText(MainActivity.this, "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.", Toast.LENGTH_SHORT).show();
                 directionSearch(data, nowLongitude, nowLatitude, Double.parseDouble(resBody.getX()), Double.parseDouble(resBody.getY()));
             }
 
@@ -188,20 +179,18 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         RetrofitAPI retrofitAPI = retrofit.create(RetrofitAPI.class);
 
         RequestInfo requestInfo = new RequestInfo(
-                nowLongitude,
-                nowLatitude,
-                searchLongitude,
-                searchLatitude,
-                "WGS84GEO",
-                "WGS84GEO",
-                "현재 위치",
-                "도착지");
+                nowLongitude, nowLatitude, searchLongitude, searchLatitude,
+                GEOMETRY_TYPE, GEOMETRY_TYPE, "현재 위치", "도착지");
         retrofitAPI.walkingDirection(requestInfo).enqueue(new Callback<ResponseInfo>() {
             @Override
             public void onResponse(@NonNull Call<ResponseInfo> call, @NonNull Response<ResponseInfo> response) {
                 data[0] = response.body();
                 assert data[0] != null;
                 Log.d("RouteResponse", data[0].toString());
+
+                for (int i = 0; i < data[0].getFeatures().size(); i++)
+                    routes.add(data[0].getFeatures().get(i).getGeometry().getCoordinates());
+                Log.d("checkRoutes", routes.toString());
             }
 
             @Override
@@ -211,70 +200,52 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         });
     }
 
+
+
     @Override
     public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
+        MapPoint.GeoCoordinate mapPointGeo = mapPoint.getMapPointGeoCoord();
 
+        Double currentLat = mapPointGeo.latitude;
+        Double currentLng = mapPointGeo.longitude;
+        Log.d("currentLocation", currentLat + "  " + currentLng);
     }
 
     @Override
-    public void onCurrentLocationDeviceHeadingUpdate(MapView mapView, float v) {
-
-    }
+    public void onCurrentLocationDeviceHeadingUpdate(MapView mapView, float v) {}
 
     @Override
-    public void onCurrentLocationUpdateFailed(MapView mapView) {
-
-    }
+    public void onCurrentLocationUpdateFailed(MapView mapView) {}
 
     @Override
-    public void onCurrentLocationUpdateCancelled(MapView mapView) {
-
-    }
+    public void onCurrentLocationUpdateCancelled(MapView mapView) {}
 
     @Override
-    public void onMapViewInitialized(MapView mapView) {
-
-    }
+    public void onMapViewInitialized(MapView mapView) {}
 
     @Override
-    public void onMapViewCenterPointMoved(MapView mapView, MapPoint mapPoint) {
-
-    }
+    public void onMapViewCenterPointMoved(MapView mapView, MapPoint mapPoint) {}
 
     @Override
-    public void onMapViewZoomLevelChanged(MapView mapView, int i) {
-
-    }
+    public void onMapViewZoomLevelChanged(MapView mapView, int i) {}
 
     @Override
-    public void onMapViewSingleTapped(MapView mapView, MapPoint mapPoint) {
-
-    }
+    public void onMapViewSingleTapped(MapView mapView, MapPoint mapPoint) {}
 
     @Override
-    public void onMapViewDoubleTapped(MapView mapView, MapPoint mapPoint) {
-
-    }
+    public void onMapViewDoubleTapped(MapView mapView, MapPoint mapPoint) {}
 
     @Override
-    public void onMapViewLongPressed(MapView mapView, MapPoint mapPoint) {
-
-    }
+    public void onMapViewLongPressed(MapView mapView, MapPoint mapPoint) {}
 
     @Override
-    public void onMapViewDragStarted(MapView mapView, MapPoint mapPoint) {
-
-    }
+    public void onMapViewDragStarted(MapView mapView, MapPoint mapPoint) {}
 
     @Override
-    public void onMapViewDragEnded(MapView mapView, MapPoint mapPoint) {
-
-    }
+    public void onMapViewDragEnded(MapView mapView, MapPoint mapPoint) {}
 
     @Override
-    public void onMapViewMoveFinished(MapView mapView, MapPoint mapPoint) {
-
-    }
+    public void onMapViewMoveFinished(MapView mapView, MapPoint mapPoint) {}
 
     // 권한 체크 이후 로직
     @Override

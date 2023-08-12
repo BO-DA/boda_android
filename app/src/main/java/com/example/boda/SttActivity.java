@@ -41,6 +41,7 @@ public class SttActivity extends AppCompatActivity {
 
         // xml의 버튼과 텍스트 뷰 연결
         textView = (TextView)findViewById(R.id.stt_text);
+        textView.setText("목적지를 말씀해주세요.");
         sttBtn = (ImageButton)findViewById(R.id.stt_button);
 
         // RecognizerIntent 객체 생성
@@ -66,8 +67,7 @@ public class SttActivity extends AppCompatActivity {
 
         @Override
         public void onBeginningOfSpeech() {
-            Toast.makeText(getApplicationContext(),"말하기 시작", Toast.LENGTH_SHORT).show();
-
+//            Toast.makeText(getApplicationContext(),"말하기 시작", Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -78,8 +78,7 @@ public class SttActivity extends AppCompatActivity {
 
         @Override
         public void onEndOfSpeech() {
-            Toast.makeText(getApplicationContext(),"말하기 중지", Toast.LENGTH_SHORT).show();
-
+//            Toast.makeText(getApplicationContext(),"말하기 중지", Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -88,38 +87,38 @@ public class SttActivity extends AppCompatActivity {
 
             switch (error) {
                 case SpeechRecognizer.ERROR_AUDIO:
-                    message = "오디오 에러";
+                    message = "error: AUDIO";
                     break;
                 case SpeechRecognizer.ERROR_CLIENT:
-                    message = "클라이언트 에러";
+                    message = "error: CLIENT";
                     break;
                 case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                    message = "퍼미션 없음";
+                    message = "error: INSUFFICIENT_PERMISSION";
                     break;
                 case SpeechRecognizer.ERROR_NETWORK:
-                    message = "네트워크 에러";
+                    message = "error: NETWORK";
                     break;
                 case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                    message = "네트웍 타임아웃";
+                    message = "error: NETWORK_TIMEOUT";
                     break;
                 case SpeechRecognizer.ERROR_NO_MATCH:
-                    message = "찾을 수 없음";
+                    message = "error: NO_MATCH";
                     break;
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                    message = "RECOGNIZER가 바쁨";
+                    message = "error: RECOGNIZER_BUSY";
                     break;
                 case SpeechRecognizer.ERROR_SERVER:
-                    message = "서버가 이상함";
+                    message = "error: SERVER";
                     break;
                 case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                    message = "말하는 시간초과";
+                    message = "error: SPEECH_TIMEOUT";
                     break;
                 default:
-                    message = "알 수 없는 오류임";
+                    message = "error: unknown";
                     break;
             }
 
-            Toast.makeText(getApplicationContext(), "에러가 발생하였습니다. : " + message,Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -139,7 +138,6 @@ public class SttActivity extends AppCompatActivity {
             mainIntent.putExtra("sttResult", sttResult);
             setResult(RESULT_OK, mainIntent);
 
-//            finish();
             startActivity(mainIntent);
         }
 

@@ -30,16 +30,16 @@ public class Geometry {
         @Override
         public ArrayList<ArrayList<Double>> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             ArrayList<ArrayList<Double>> res = new ArrayList<>();
-            Log.d("deserialize", String.valueOf(json));
+//            Log.d("deserialize", String.valueOf(json));
 
             if (String.valueOf(json).charAt(1) == '[') {
-                Log.d("checkRes", "valueOf 1 is [");
+//                Log.d("checkRes", "valueOf 1 is [");
                 res = context.deserialize(json, typeOfT);
             } else {
-                Log.d("checkRes", "else case");
+//                Log.d("checkRes", "else case");
                 res.add(context.deserialize(json, ArrayList.class));
             }
-            Log.d("checkResult", res.toString());
+//            Log.d("checkResult", res.toString());
             return res;
         }
     }

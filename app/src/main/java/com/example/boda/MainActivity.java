@@ -16,6 +16,7 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
@@ -32,6 +33,7 @@ import com.example.boda.api.search.Document;
 import com.example.boda.api.search.SearchResponseInfo;
 
 import net.daum.mf.map.api.MapPoint;
+import net.daum.mf.map.api.MapPolyline;
 import net.daum.mf.map.api.MapView;
 
 import java.security.MessageDigest;
@@ -49,7 +51,6 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
     private MapView mapView;
     private ViewGroup mapViewContainer;
-    final private String    GEOMETRY_TYPE = "WGS84GEO";
     ArrayList<ArrayList<ArrayList<Double>>> routes = new ArrayList<>();
 
     @Override
@@ -100,7 +101,6 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setCurrentLocationEventListener(this);
         mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
         mapView.setShowCurrentLocationMarker(true);
-        mapView.setCurrentLocationRadius(20);
     }
 
     @Override
@@ -157,8 +157,15 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 assert searchData[0] != null;
                 Log.d("SearchResponse", searchData[0].toString());
                 Document resBody = searchData[0].getDocuments()[0];
+
+                // TTS 경로 안내 알림 + 팝업 메시지
+                String sttString = "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.";
+                Toast.makeText(MainActivity.this, sttString, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(MainActivity.this, TtsActivity.class);
+                intent.putExtra("SpeechText", sttString);
+                startActivity(intent);
+
                 // 장소 검색이 성공한 경우에만 directionSearch를 통해 경로를 검색함
-                Toast.makeText(MainActivity.this, "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.", Toast.LENGTH_SHORT).show();
                 directionSearch(data, nowLongitude, nowLatitude, Double.parseDouble(resBody.getX()), Double.parseDouble(resBody.getY()));
             }
 
@@ -180,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
         RequestInfo requestInfo = new RequestInfo(
                 nowLongitude, nowLatitude, searchLongitude, searchLatitude,
-                GEOMETRY_TYPE, GEOMETRY_TYPE, "현재 위치", "도착지");
+                "WGS84GEO", "WGS84GEO", "현재 위치", "도착지");
         retrofitAPI.walkingDirection(requestInfo).enqueue(new Callback<ResponseInfo>() {
             @Override
             public void onResponse(@NonNull Call<ResponseInfo> call, @NonNull Response<ResponseInfo> response) {
@@ -191,6 +198,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 for (int i = 0; i < data[0].getFeatures().size(); i++)
                     routes.add(data[0].getFeatures().get(i).getGeometry().getCoordinates());
                 Log.d("checkRoutes", routes.toString());
+                drawLineOnMap();
             }
 
             @Override
@@ -198,6 +206,23 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 t.printStackTrace();
             }
         });
+    }
+
+    public void drawLineOnMap() {
+
+        MapPolyline mapPolyline = new MapPolyline();
+        mapPolyline.setTag(1000);
+        mapPolyline.setLineColor(Color.argb(100, 0, 0, 0));
+
+        for (int i = 0; i < routes.size(); i++) {
+            if (routes.get(i).size() != 1) { // feature 가 여러 개 (경로인 경우)
+                for (int j = 0; j < routes.get(i).size(); j++) {
+                    mapPolyline.addPoint(MapPoint.mapPointWithGeoCoord(routes.get(i).get(j).get(1), routes.get(i).get(j).get(0)));
+                }
+            }
+        }
+        mapView.addPolyline(mapPolyline);
+        mapView.setZoomLevel(1, true);
     }
 
 

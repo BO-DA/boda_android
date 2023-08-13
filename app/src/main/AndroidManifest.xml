@@ -25,6 +25,10 @@
             android:exported="false" >
         </activity>
         <activity
+            android:name=".TtsActivity"
+            android:exported="false" >
+        </activity>
+        <activity
             android:name=".SttActivity"
             android:exported="true" >
             <intent-filter>

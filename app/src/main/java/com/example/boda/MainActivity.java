@@ -52,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     private MapView mapView;
     private ViewGroup mapViewContainer;
     ArrayList<ArrayList<ArrayList<Double>>> routes = new ArrayList<>();
+    ArrayList<ArrayList<Double>> points = new ArrayList<>();
+    private int checkIndex = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,9 +127,6 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         Double nowLatitude = nowLocation.getLatitude(); Log.d("Position.Latitude", String.valueOf(nowLatitude));
         Double nowLongitude = nowLocation.getLongitude();   Log.d("Position.Longitude", String.valueOf(nowLongitude));
 
-        // todo: TTS 구현
-        // todo: TTS 말하기 ("원하시는 목적지를 말씀해주세요.")
-
         // API 통신
         SearchResponseInfo[] searchData = {null};
         ResponseInfo[] data = {null};
@@ -159,10 +158,10 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 Document resBody = searchData[0].getDocuments()[0];
 
                 // TTS 경로 안내 알림 + 팝업 메시지
-                String sttString = "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.";
-                Toast.makeText(MainActivity.this, sttString, Toast.LENGTH_SHORT).show();
+                String ttsString = "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.";
+                Toast.makeText(MainActivity.this, ttsString, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(MainActivity.this, TtsActivity.class);
-                intent.putExtra("SpeechText", sttString);
+                intent.putExtra("SpeechText", ttsString);
                 startActivity(intent);
 
                 // 장소 검색이 성공한 경우에만 directionSearch를 통해 경로를 검색함
@@ -219,6 +218,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 for (int j = 0; j < routes.get(i).size(); j++) {
                     mapPolyline.addPoint(MapPoint.mapPointWithGeoCoord(routes.get(i).get(j).get(1), routes.get(i).get(j).get(0)));
                 }
+            } else {
+                points.add(routes.get(i).get(0));
             }
         }
         mapView.addPolyline(mapPolyline);
@@ -234,6 +235,20 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         Double currentLat = mapPointGeo.latitude;
         Double currentLng = mapPointGeo.longitude;
         Log.d("currentLocation", currentLat + "  " + currentLng);
+
+        if (points != null) {
+            // 일반적 계산: 0.0001 차이는 10m 차이
+            for (int i = checkIndex; i < points.size(); i++) {
+                ArrayList<Double> nowIndex = points.get(checkIndex);
+
+                if (Math.abs(nowIndex.get(0) - currentLat) < 0.0002 && Math.abs(nowIndex.get(1) - currentLng) < 0.0002) {
+                    // 위도와 경도 모두 현위치 20m 이내인 경우
+                    checkIndex++;
+                }
+            }
+        } else {
+            Log.d("RouteInfo", "Points not provided");
+        }
     }
 
     @Override

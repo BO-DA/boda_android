@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -39,6 +40,13 @@ public class SttActivity extends AppCompatActivity {
                     Manifest.permission.RECORD_AUDIO},PERMISSION);
         }
 
+        // TTS("원하시는 목적지를 말씀해주세요.")
+        String ttsString = "원하시는 목적지를 말씀해주세요.";
+        Toast.makeText(SttActivity.this, ttsString, Toast.LENGTH_SHORT).show();
+        Intent ttsIntent = new Intent(SttActivity.this, TtsActivity.class);
+        ttsIntent.putExtra("SpeechText", ttsString);
+        startActivity(ttsIntent);
+
         // xml의 버튼과 텍스트 뷰 연결
         textView = (TextView)findViewById(R.id.stt_text);
         textView.setText("목적지를 말씀해주세요.");
@@ -55,6 +63,14 @@ public class SttActivity extends AppCompatActivity {
             mRecognizer.setRecognitionListener(listener);
             mRecognizer.startListening(intent);
         });
+
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                sttBtn.performClick();
+            }
+        }, 3500);
 
     }
 

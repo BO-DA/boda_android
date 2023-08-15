@@ -70,7 +70,7 @@ public class SttActivity extends AppCompatActivity {
             public void run() {
                 sttBtn.performClick();
             }
-        }, 3500);
+        }, 3000);
 
     }
 

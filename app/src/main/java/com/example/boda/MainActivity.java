@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.example.boda.api.route.Feature;
 import com.example.boda.api.route.RequestInfo;
 import com.example.boda.api.route.ResponseInfo;
 import com.example.boda.api.RetrofitAPI;
@@ -51,7 +52,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
     private MapView mapView;
     private ViewGroup mapViewContainer;
+    SearchResponseInfo[] searchData = {null};
+    ResponseInfo[] data = {null};
+
     ArrayList<ArrayList<ArrayList<Double>>> routes = new ArrayList<>();
+    private int checkIndex = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,14 +114,14 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         // 현재 위치 시스템으로부터 가져오기
         final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         String locationProvider = LocationManager.GPS_PROVIDER;
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            // 권한 요청을 위해 ActivityCompat#requestPermissions 호출
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    1000);
             return;
         }
         Location nowLocation = locationManager.getLastKnownLocation(locationProvider);
@@ -125,13 +130,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         Double nowLatitude = nowLocation.getLatitude(); Log.d("Position.Latitude", String.valueOf(nowLatitude));
         Double nowLongitude = nowLocation.getLongitude();   Log.d("Position.Longitude", String.valueOf(nowLongitude));
 
-        // todo: TTS 구현
-        // todo: TTS 말하기 ("원하시는 목적지를 말씀해주세요.")
-
         // API 통신
-        SearchResponseInfo[] searchData = {null};
-        ResponseInfo[] data = {null};
-
         String placeName = getIntent().getStringExtra("sttResult");
         searchPlace(searchData, data, nowLongitude, nowLatitude, placeName);
     }
@@ -159,10 +158,10 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 Document resBody = searchData[0].getDocuments()[0];
 
                 // TTS 경로 안내 알림 + 팝업 메시지
-                String sttString = "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.";
-                Toast.makeText(MainActivity.this, sttString, Toast.LENGTH_SHORT).show();
+                String ttsString = "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.";
+                Toast.makeText(MainActivity.this, ttsString, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(MainActivity.this, TtsActivity.class);
-                intent.putExtra("SpeechText", sttString);
+                intent.putExtra("SpeechText", ttsString);
                 startActivity(intent);
 
                 // 장소 검색이 성공한 경우에만 directionSearch를 통해 경로를 검색함
@@ -216,24 +215,66 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
         for (int i = 0; i < routes.size(); i++) {
             if (routes.get(i).size() != 1) { // feature 가 여러 개 (경로인 경우)
-                for (int j = 0; j < routes.get(i).size(); j++) {
+                for (int j = 0; j < routes.get(i).size(); j++) { // 그리는 경로에 추가
                     mapPolyline.addPoint(MapPoint.mapPointWithGeoCoord(routes.get(i).get(j).get(1), routes.get(i).get(j).get(0)));
                 }
             }
         }
+        // 선 그리기
         mapView.addPolyline(mapPolyline);
-        mapView.setZoomLevel(1, true);
+        mapView.setZoomLevel(0, true);
     }
 
-
+    Boolean isTalked = false;
+    Boolean isWalkerArrived = false;
 
     @Override
     public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
         MapPoint.GeoCoordinate mapPointGeo = mapPoint.getMapPointGeoCoord();
+        Log.d("currentLocation", mapPointGeo.latitude + "  " + mapPointGeo.longitude);
 
-        Double currentLat = mapPointGeo.latitude;
-        Double currentLng = mapPointGeo.longitude;
-        Log.d("currentLocation", currentLat + "  " + currentLng);
+        if (data != null && data[0] != null && checkIndex < data[0].getFeatures().size() && !isWalkerArrived) {
+            Feature nowIndexFeature = data[0].getFeatures().get(checkIndex);
+            // 일반적 계산: 0.0001 차이는 10m 차이
+            ArrayList<Double> nowIndex = nowIndexFeature.getGeometry().getCoordinates().get(0);
+
+            if (Math.abs(nowIndex.get(0) - mapPointGeo.longitude) < 0.00015
+                    && Math.abs(nowIndex.get(1) - mapPointGeo.latitude) < 0.00015) {
+                // 위도와 경도 모두 현위치 20m 이내인 경우
+                if (!isTalked) {
+                    String ttsString = nowIndexFeature.getPropertyRoute().getDescription() + "하세요.";
+                    Toast.makeText(MainActivity.this, ttsString, Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(MainActivity.this, TtsActivity.class);
+                    intent.putExtra("SpeechText", ttsString);
+                    startActivity(intent);
+                }
+                isTalked = true;
+
+                Log.d("RouteStatus", checkIndex + " 도착");
+                while (checkIndex < data[0].getFeatures().size()
+                        && data[0].getFeatures().get(checkIndex).getType() != "Point") {
+                    checkIndex++;
+                    isTalked = false;
+                }
+//                if (checkIndex == data[0].getFeatures().size()) {
+//                    isWalkerArrived = true;
+//                    onWalkerArrive();
+//                }
+                Log.d("RouteStatus", checkIndex + " / " + data[0].getFeatures().size());
+            }
+        }
+    }
+
+    public void onWalkerArrive() {
+        // TTS 경로 안내 알림 + 팝업 메시지
+        String ttsString = "목적지에 도착하여 경로 안내를 종료합니다.";
+        Toast.makeText(MainActivity.this, ttsString, Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(MainActivity.this, TtsActivity.class);
+        intent.putExtra("SpeechText", ttsString);
+        startActivity(intent);
+
+//        Intent mainIntent = new Intent(getApplicationContext(), SttActivity.class);
+//        startActivity(mainIntent);
     }
 
     @Override

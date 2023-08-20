@@ -27,7 +27,7 @@ public class TtsActivity extends AppCompatActivity implements TextToSpeech.OnIni
         Intent intent = getIntent();
         String speechText = intent.getStringExtra("SpeechText");
         tts.setPitch((float) 1.0); // 음성 톤 높이 지정
-        tts.setSpeechRate((float) 0.8); // 음성 속도 지정
+        tts.setSpeechRate((float) 1.2); // 음성 속도 지정
 
         // TextToSpeech.QUEUE_FLUSH: play TTS directly
         // TextToSpeech.QUEUE_ADD: play TTS after this TTS ends

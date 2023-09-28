@@ -1,5 +1,7 @@
 package com.example.boda;
 
+import static com.example.boda.Config.STREAMING_SERVER;
+
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -22,12 +24,10 @@ public class StreamActivity extends AppCompatActivity
         implements ConnectCheckerRtsp, View.OnClickListener, SurfaceHolder.Callback {
 
     public static final String[] permissionList = {
-            Manifest.permission.CAMERA,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
+            Manifest.permission.CAMERA
     };
 
     public static final int MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 200;
-    private final String URL = "rtsp://10.0.2.2:8556/boda";
 
     private RtspCamera1 rtspCamera1;
     private Button button;
@@ -97,10 +97,9 @@ public class StreamActivity extends AppCompatActivity
         int id = view.getId();
         if (id == R.id.b_start_stop) {
             if (!rtspCamera1.isStreaming()) {
-                if (rtspCamera1.isRecording()
-                        || rtspCamera1.prepareAudio() && rtspCamera1.prepareVideo()) {
+                if (rtspCamera1.prepareVideo()) {
                     button.setText("정지");
-                    rtspCamera1.startStream(URL);
+                    rtspCamera1.startStream(STREAMING_SERVER);
                 } else {
                     Toast.makeText(this, "연결에 오류가 발생하였습니다.",
                             Toast.LENGTH_SHORT).show();

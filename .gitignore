@@ -1,5 +1,5 @@
 # Secret Keys
-app/src/main/java/com/example/boda/api/Config.java
+app/src/main/java/com/example/boda/Config.java
 
 *.iml
 .gradle
@@ -46,9 +46,6 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
-
-# Google Services (e.g. APIs or Firebase)
-google-services.json
 
 # Android Profiling
 *.hprof

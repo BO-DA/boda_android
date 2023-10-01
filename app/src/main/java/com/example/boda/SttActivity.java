@@ -150,11 +150,11 @@ public class SttActivity extends AppCompatActivity {
             }
             Log.d("여기", sttResult);
 
-            Intent mainIntent = new Intent(getApplicationContext(), MainActivity.class);
-            mainIntent.putExtra("sttResult", sttResult);
-            setResult(RESULT_OK, mainIntent);
+            Intent streamActivity = new Intent(getApplicationContext(), StreamActivity.class);
+            streamActivity.putExtra("sttResult", sttResult);
+            setResult(RESULT_OK, streamActivity);
 
-            startActivity(mainIntent);
+            startActivity(streamActivity);
         }
 
         @Override

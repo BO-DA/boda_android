@@ -1,28 +1,22 @@
 package com.example.boda;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.graphics.Color;
-import android.location.Location;
-import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
@@ -49,7 +43,8 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
+public class MainFragment extends Fragment
+        implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
     private MapView mapView;
     private ViewGroup mapViewContainer;
     SearchResponseInfo[] searchData = {null};
@@ -59,13 +54,13 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     private int checkIndex = 0;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.activity_stream, container, false);
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
         // 키 해시 얻기
         try {
-            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
+            PackageInfo info = getActivity().getPackageManager().getPackageInfo(getActivity().getPackageName(), PackageManager.GET_SIGNATURES);
             for (Signature signature : info.signatures) {
                 MessageDigest md = MessageDigest.getInstance("SHA");
                 md.update(signature.toByteArray());
@@ -76,13 +71,13 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         }
 
         // 권한ID를 가져오기
-        int permission = ContextCompat.checkSelfPermission(this,
+        int permission = ContextCompat.checkSelfPermission(getActivity(),
                 Manifest.permission.INTERNET);
 
-        int permission2 = ContextCompat.checkSelfPermission(this,
+        int permission2 = ContextCompat.checkSelfPermission(getActivity(),
                 Manifest.permission.ACCESS_FINE_LOCATION);
 
-        int permission3 = ContextCompat.checkSelfPermission(this,
+        int permission3 = ContextCompat.checkSelfPermission(getActivity(),
                 Manifest.permission.ACCESS_COARSE_LOCATION);
 
         // 권한이 열려 있는지 확인
@@ -94,45 +89,18 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                         new String[]{Manifest.permission.INTERNET, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
                         1000);
             }
-            return;
+            return view;
         }
 
-        // 지도를 띄우자
-        // java code
-        mapView = new MapView(this);
-        mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
+        mapView = new MapView(getActivity());
+        mapViewContainer = (ViewGroup) getActivity().findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
         mapView.setMapViewEventListener(this);
         mapView.setCurrentLocationEventListener(this);
         mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
         mapView.setShowCurrentLocationMarker(true);
-    }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // 현재 위치 시스템으로부터 가져오기
-        final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        String locationProvider = LocationManager.GPS_PROVIDER;
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-            // 권한 요청을 위해 ActivityCompat#requestPermissions 호출
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
-                    1000);
-            return;
-        }
-        Location nowLocation = locationManager.getLastKnownLocation(locationProvider);
-
-        assert nowLocation != null;
-        Double nowLatitude = nowLocation.getLatitude(); Log.d("Position.Latitude", String.valueOf(nowLatitude));
-        Double nowLongitude = nowLocation.getLongitude();   Log.d("Position.Longitude", String.valueOf(nowLongitude));
-
-        // API 통신
-        String placeName = getIntent().getStringExtra("sttResult");
-        searchPlace(searchData, data, nowLongitude, nowLatitude, placeName);
+        return view;
     }
 
     // Kakao map API로 장소 이름을 통해 검색하여, 최상단 장소의 위도, 경도를 가지고 옴
@@ -159,8 +127,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
                 // TTS 경로 안내 알림 + 팝업 메시지
                 String ttsString = "현재 위치에서 " + resBody.getPlace_name() + "까지의 경로를 안내합니다.";
-                Toast.makeText(MainActivity.this, ttsString, Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(MainActivity.this, TtsActivity.class);
+                Toast.makeText(getActivity(), ttsString, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(getActivity(), TtsActivity.class);
                 intent.putExtra("SpeechText", ttsString);
                 startActivity(intent);
 
@@ -225,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setZoomLevel(0, true);
     }
 
+    Boolean isSearchRequested = false;
     Boolean isTalked = false;
     Boolean isWalkerArrived = false;
 
@@ -232,6 +201,13 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
         MapPoint.GeoCoordinate mapPointGeo = mapPoint.getMapPointGeoCoord();
         Log.d("currentLocation", mapPointGeo.latitude + "  " + mapPointGeo.longitude);
+
+        // API 통신
+        if (!isSearchRequested) {
+            String placeName = getActivity().getIntent().getStringExtra("sttResult");
+            searchPlace(searchData, data, mapPointGeo.longitude, mapPointGeo.latitude, placeName);
+            isSearchRequested = true;
+        }
 
         if (data != null && data[0] != null && checkIndex < data[0].getFeatures().size() && !isWalkerArrived) {
             Feature nowIndexFeature = data[0].getFeatures().get(checkIndex);
@@ -243,8 +219,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 // 위도와 경도 모두 현위치 20m 이내인 경우
                 if (!isTalked) {
                     String ttsString = nowIndexFeature.getPropertyRoute().getDescription() + "하세요.";
-                    Toast.makeText(MainActivity.this, ttsString, Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(MainActivity.this, TtsActivity.class);
+                    Toast.makeText(getActivity(), ttsString, Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(getActivity(), TtsActivity.class);
                     intent.putExtra("SpeechText", ttsString);
                     startActivity(intent);
                 }
@@ -268,8 +244,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     public void onWalkerArrive() {
         // TTS 경로 안내 알림 + 팝업 메시지
         String ttsString = "목적지에 도착하여 경로 안내를 종료합니다.";
-        Toast.makeText(MainActivity.this, ttsString, Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(MainActivity.this, TtsActivity.class);
+        Toast.makeText(getActivity(), ttsString, Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(getActivity(), TtsActivity.class);
         intent.putExtra("SpeechText", ttsString);
         startActivity(intent);
 
@@ -313,26 +289,4 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     @Override
     public void onMapViewMoveFinished(MapView mapView, MapPoint mapPoint) {}
 
-    // 권한 체크 이후 로직
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults) {
-        // READ_PHONE_STATE의 권한 체크 결과를 불러온다
-        super.onRequestPermissionsResult(requestCode, permissions, grandResults);
-        if (requestCode == 1000) {
-            boolean check_result = true;
-
-            // 모든 퍼미션을 허용했는지 체크
-            for (int result : grandResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    check_result = false;
-                    break;
-                }
-            }
-
-            // 권한 체크에 동의를 하지 않으면 안드로이드 종료
-            if (!check_result) {
-                finish();
-            }
-        }
-    }
 }

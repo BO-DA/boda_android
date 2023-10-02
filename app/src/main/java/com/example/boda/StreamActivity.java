@@ -3,9 +3,11 @@ package com.example.boda;
 import static com.example.boda.Config.STREAMING_SERVER;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
@@ -25,12 +27,15 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.boda.utils.PermissionUtils;
 import com.pedro.rtplibrary.rtsp.RtspCamera1;
 import com.pedro.rtsp.utils.ConnectCheckerRtsp;
 
 import java.net.URISyntaxException;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -51,10 +56,10 @@ public class StreamActivity extends AppCompatActivity
 
     private RtspCamera1 rtspCamera1;
     private Button button;
-
-//    private SocketIOService mService;
-    private boolean mBound = false;
     private Socket mSocket;
+    private BroadcastReceiver receiver;
+    String message;
+    String[] result;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -79,25 +84,48 @@ public class StreamActivity extends AppCompatActivity
         rtspCamera1.setReTries(10);
         surfaceView.getHolder().addCallback(this);
 
-
+        DrawOnTop mDraw = new DrawOnTop(this);
+        addContentView(mDraw, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
 
         try {
             mSocket = IO.socket("http://10.0.2.2:13245");
             mSocket.connect();
-            Log.d("WPW", String.valueOf(mSocket.connected()));
+            Log.d("isSocketConnected", String.valueOf(mSocket.connected()));
         } catch(URISyntaxException e) {
             e.printStackTrace();
         }
 
-        // Bind to the service
         Intent intent = new Intent(this, SocketService.class);
         startService(intent);
-//
-//        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
-        DrawOnTop mDraw = new DrawOnTop(this);
-        addContentView(mDraw, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        // BroadcastReceiver 초기화 및 등록
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if ("SocketServiceBroadcast".equals(intent.getAction())) {
+                    message = intent.getStringExtra("message");
+                    result = splitStringBySpace(message);
+                    Log.d("test", message);
+                    Log.d("test", String.valueOf(result.length));
+                    mDraw.onMessageUpdate();
+                    if (result.length == 9 && result[8].equals("Left")) {
+                        doTTS("왼쪽");
+                        Log.d("TTS", "left 실행");
+                    }
+                    if (result.length == 9 && result[8].equals("Right")) {
+                        doTTS("오른쪽");
+                        Log.d("TTS", "right 실행");
+                    }
+                }
+            }
+            public String[] splitStringBySpace(String inputString) {
+                // "\\s+"는 하나 이상의 공백을 의미하는 정규 표현식
+                return inputString.split("\\s+");
+            }
+        };
 
+        IntentFilter filter = new IntentFilter("SocketServiceBroadcast");
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, filter);
 
     }
 
@@ -105,7 +133,10 @@ public class StreamActivity extends AppCompatActivity
 
         public DrawOnTop(Context context) {
             super(context);
-            // TODO Auto-generated constructor stub
+        }
+
+        public void onMessageUpdate() {
+            invalidate();
         }
 
         @Override
@@ -114,11 +145,23 @@ public class StreamActivity extends AppCompatActivity
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(Color.RED);                    // 적색
             paint.setStrokeWidth(20);                     // 크기 10
-            canvas.drawLine(100, 100, 500, 500, paint);    // 라인그리기
-
+//            canvas.drawLine(100, 100, 500, 500, paint);
+            if (result == null || result.length < 8) {
+                result = new String[]{"0", "0", "0", "0", "0", "0", "0", "0"};
+            }
+            canvas.drawLine(Float.parseFloat(result[0]), Float.parseFloat(result[1]), Float.parseFloat(result[2]), Float.parseFloat(result[3]), paint);
+            canvas.drawLine(Float.parseFloat(result[4]), Float.parseFloat(result[5]), Float.parseFloat(result[6]), Float.parseFloat(result[7]), paint);
             super.onDraw(canvas);
         }
 
+    }
+
+    public void doTTS(String direction) {
+        String ttsString = direction + "으로 이동하세요.";
+        Toast.makeText(getApplicationContext(), ttsString, Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(getApplicationContext(), TtsActivity.class);
+        intent.putExtra("SpeechText", ttsString);
+        startActivity(intent);
     }
 
     @Override
@@ -209,15 +252,12 @@ public class StreamActivity extends AppCompatActivity
         });
     }
 
-//    @Override
-//    protected void onDestroy() {
-//        super.onDestroy();
-//        // Unbind from the service
-//        if (mBound) {
-//            unbindService(mConnection);
-//            mBound = false;
-//        }
-//    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // BroadcastReceiver 해제
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+    }
 
     @Override
     public void onConnectionStartedRtsp(@NonNull String s) {}

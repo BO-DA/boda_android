@@ -4,11 +4,13 @@ import static com.example.boda.Config.SOCKET_SERVER_IP;
 import static com.example.boda.Config.SOCKET_SERVER_PORT;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -30,7 +32,7 @@ public class SocketService extends Service {
         return START_STICKY;
     }
 
-    static class ClientThread extends Thread {
+    class ClientThread extends Thread {
         @Override
         public void run() {
             Socket socket = null;
@@ -51,6 +53,9 @@ public class SocketService extends Service {
 
                     String receivedMessage = stringBuilder.toString();
                     System.out.println("Received: " + receivedMessage);
+
+                    sendBroadcast(receivedMessage);
+
                     Thread.sleep(1000);
                 } catch (Exception e) {
                     Log.e(TAG, "Error in socket communication", e);
@@ -65,6 +70,12 @@ public class SocketService extends Service {
                 }
             }
         }
+    }
+
+    private void sendBroadcast(String message) {
+        Intent intent = new Intent("SocketServiceBroadcast");
+        intent.putExtra("message", message);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     @Nullable

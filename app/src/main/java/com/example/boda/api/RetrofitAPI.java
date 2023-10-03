@@ -1,7 +1,7 @@
 package com.example.boda.api;
 
-import static com.example.boda.api.Config.APP_KEY_TOKEN;
-import static com.example.boda.api.Config.KAKAO_REST_API_KEY;
+import static com.example.boda.Config.APP_KEY_TOKEN;
+import static com.example.boda.Config.KAKAO_REST_API_KEY;
 
 import com.example.boda.api.route.RequestInfo;
 import com.example.boda.api.route.ResponseInfo;
@@ -11,12 +11,9 @@ import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.Headers;
 import retrofit2.http.POST;
-import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 
 public interface RetrofitAPI {

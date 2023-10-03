@@ -112,16 +112,16 @@ public class SttActivity extends AppCompatActivity {
                     message = "error: INSUFFICIENT_PERMISSION";
                     break;
                 case SpeechRecognizer.ERROR_NETWORK:
-                    message = "error: NETWORK";
+                    message = "네트워크 연결이 없습니다.";
                     break;
                 case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
                     message = "error: NETWORK_TIMEOUT";
                     break;
                 case SpeechRecognizer.ERROR_NO_MATCH:
-                    message = "error: NO_MATCH";
+                    message = "검색 결과가 없습니다.";
                     break;
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                    message = "error: RECOGNIZER_BUSY";
+                    message = "현재 인식중입니다.";
                     break;
                 case SpeechRecognizer.ERROR_SERVER:
                     message = "error: SERVER";
@@ -150,11 +150,11 @@ public class SttActivity extends AppCompatActivity {
             }
             Log.d("여기", sttResult);
 
-            Intent mainIntent = new Intent(getApplicationContext(), MainActivity.class);
-            mainIntent.putExtra("sttResult", sttResult);
-            setResult(RESULT_OK, mainIntent);
+            Intent streamActivity = new Intent(getApplicationContext(), StreamActivity.class);
+            streamActivity.putExtra("sttResult", sttResult);
+            setResult(RESULT_OK, streamActivity);
 
-            startActivity(mainIntent);
+            startActivity(streamActivity);
         }
 
         @Override

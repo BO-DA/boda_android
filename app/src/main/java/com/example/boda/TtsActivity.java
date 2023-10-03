@@ -17,7 +17,7 @@ public class TtsActivity extends AppCompatActivity implements TextToSpeech.OnIni
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_stream);
 
         tts = new TextToSpeech(this, this);
         speakOut();

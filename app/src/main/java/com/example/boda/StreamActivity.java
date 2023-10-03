@@ -60,6 +60,8 @@ public class StreamActivity extends AppCompatActivity
     private BroadcastReceiver receiver;
     String message;
     String[] result;
+    int consecutiveCountLeft = 0;
+    int consecutiveCountRight = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -87,14 +89,6 @@ public class StreamActivity extends AppCompatActivity
         DrawOnTop mDraw = new DrawOnTop(this);
         addContentView(mDraw, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
 
-        try {
-            mSocket = IO.socket("http://10.0.2.2:13245");
-            mSocket.connect();
-            Log.d("isSocketConnected", String.valueOf(mSocket.connected()));
-        } catch(URISyntaxException e) {
-            e.printStackTrace();
-        }
-
         Intent intent = new Intent(this, SocketService.class);
         startService(intent);
 
@@ -108,13 +102,28 @@ public class StreamActivity extends AppCompatActivity
                     Log.d("test", message);
                     Log.d("test", String.valueOf(result.length));
                     mDraw.onMessageUpdate();
-                    if (result.length == 9 && result[8].equals("Left")) {
+
+                    if (result[8].equals("Left")) {
+                        consecutiveCountLeft++;
+                    } else if (result[8].equals("Right")) {
+                        consecutiveCountRight++;
+                    } else {
+                        consecutiveCountLeft = 0;
+                        consecutiveCountRight = 0;
+                        // Reset the counter if "Normal" is encountered
+                    }
+
+                    // Check if three consecutive occurrences have been reached
+                    if (consecutiveCountLeft == 3) {
                         doTTS("왼쪽");
                         Log.d("TTS", "left 실행");
+                        consecutiveCountLeft = 0;
                     }
-                    if (result.length == 9 && result[8].equals("Right")) {
+
+                    if (consecutiveCountRight == 3) {
                         doTTS("오른쪽");
-                        Log.d("TTS", "right 실행");
+                        Log.d("TTS", "left 실행");
+                        consecutiveCountRight = 0;
                     }
                 }
             }
@@ -143,14 +152,42 @@ public class StreamActivity extends AppCompatActivity
         protected void onDraw(Canvas canvas) {
             Paint paint = new Paint();
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(Color.RED);                    // 적색
-            paint.setStrokeWidth(20);                     // 크기 10
+            paint.setColor(Color.GREEN);                    // 적색
+            paint.setStrokeWidth(25);                     // 크기 10
 //            canvas.drawLine(100, 100, 500, 500, paint);
             if (result == null || result.length < 8) {
                 result = new String[]{"0", "0", "0", "0", "0", "0", "0", "0"};
             }
-            canvas.drawLine(Float.parseFloat(result[0]), Float.parseFloat(result[1]), Float.parseFloat(result[2]), Float.parseFloat(result[3]), paint);
-            canvas.drawLine(Float.parseFloat(result[4]), Float.parseFloat(result[5]), Float.parseFloat(result[6]), Float.parseFloat(result[7]), paint);
+
+            // Assuming your image size is 640x640
+            float imageSizeX = 640;
+            float imageSizeY = 640;
+
+            // Get the size of the view
+            float viewSizeX = getWidth();
+            float viewSizeY = (float) getHeight() / 2;
+
+            // Calculate scaling factors
+            float scaleX = viewSizeX / imageSizeX;
+            float scaleY = viewSizeY / imageSizeY;
+
+            // Apply scaling to the coordinates
+            float x1 = Float.parseFloat(result[0]) * scaleX;
+            float y1 = Float.parseFloat(result[1]) * scaleY;
+            float x2 = Float.parseFloat(result[4]) * scaleX;
+            float y2 = Float.parseFloat(result[5]) * scaleY;
+
+            float x3 = Float.parseFloat(result[2]) * scaleX;
+            float y3 = Float.parseFloat(result[3]) * scaleY;
+            float x4 = Float.parseFloat(result[6]) * scaleX;
+            float y4 = Float.parseFloat(result[7]) * scaleY;
+
+            // Draw the lines
+            canvas.drawLine(x1, y1, x2, y2, paint);
+            canvas.drawLine(x3, y3, x4, y4, paint);
+
+//            canvas.drawLine(Float.parseFloat(result[0]), Float.parseFloat(result[1]), Float.parseFloat(result[4]), Float.parseFloat(result[5]), paint);
+//            canvas.drawLine(Float.parseFloat(result[2]), Float.parseFloat(result[3]), Float.parseFloat(result[6]), Float.parseFloat(result[7]), paint);
             super.onDraw(canvas);
         }
 

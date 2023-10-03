@@ -179,7 +179,7 @@ public class MainFragment extends Fragment
 
         MapPolyline mapPolyline = new MapPolyline();
         mapPolyline.setTag(1000);
-        mapPolyline.setLineColor(Color.argb(100, 0, 0, 0));
+        mapPolyline.setLineColor(Color.argb(100, 255, 0, 0));
 
         for (int i = 0; i < routes.size(); i++) {
             if (routes.get(i).size() != 1) { // feature 가 여러 개 (경로인 경우)
